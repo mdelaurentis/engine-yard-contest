@@ -49,7 +49,7 @@
   (struct-map st-solution
     :tweet tweet
     :score score
-    :time (Date.)))
+    :time (System/currentTimeMillis)))
 
 (defn make-solvers [n phrase dictionary]
   (for [i (range  n)]
@@ -120,3 +120,4 @@ chosen from the given dictionary."
       (reduce add-tweet manager (map best-tweet solvers))
     :num-tries (apply + (map :num-tries solvers))))
 
+(System/getProperty "java.rmi.server.hostname")
