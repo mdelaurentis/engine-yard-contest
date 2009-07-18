@@ -1,18 +1,15 @@
 (ns com.mdelaurentis.engineyardcontest.solver
-  (:import [java.security MessageDigest])
+  (:import [java.security MessageDigest]
+           [java.util Date])
   (:use [clojure.contrib test-is]
         compojure)
-  (:gen-class))
+  (:gen-class 
+   :extends javax.servlet.http.HttpServlet))
 
-(defstruct solution :tweet :score :time)
-(defstruct solver :num-tries :solutions :scoring-fn)
-
-(def running (ref false))
-
-(def message-digest (MessageDigest/getInstance "SHA-1"))
+;; SHA-1 related functions
 
 (defn sha1 [str]
-  (. message-digest (digest (.getBytes str))))
+  (. (MessageDigest/getInstance "SHA-1") (digest (.getBytes str))))
 
 (defn byte-to-bits [byte]
   (let [int-val (Integer/valueOf byte)]
@@ -29,107 +26,97 @@
 (defn format-hash [hash-str]
   (map str (partition 4 hash-str)))
 
-(sha1 "What you write today will become legacy")
-(sha1 "RuBy one eight six rspec mongrel MRI jruby jruby memcached exception reflection utf8E")
-
 (defn compare-hashes [a b]
   (count (filter (fn [[a-bit b-bit]]
-                   (println a-bit b-bit)
                    (= a-bit b-bit))
                  (map list 
                       (bytes-to-string a) 
                       (bytes-to-string b)))))
 
-(deftest test-compare-hashes
-  (is (= 80 (compare-hashes (sha1 "What you write today will become legacy")
-                            (sha1 "RuBy one eight six rspec mongrel MRI jruby jruby memcached exception reflection utf8E")))))
+(defstruct st-solution :tweet :score :time)
+(defstruct st-solver :id :phrase :dictionary :num-tries :solutions)
+
+(defn make-solver [id phrase dictionary]
+  (struct-map st-solver
+    :id id
+    :phrase phrase
+    :dictionary dictionary
+    :hash (sha1 phrase)
+    :solutions ()
+    :num-tries 0))
+
+(defn make-solution [tweet score]
+  (struct-map st-solution
+    :tweet tweet
+    :score score
+    :time (Date.)))
+
+(defn make-solvers [n phrase dictionary]
+  (for [i (range  n)]
+    (make-solver i phrase dictionary)))
+
+(defn best-solution [solver]
+  (first (:solutions solver)))
+
+(defn best-tweet [solver]
+  (:tweet (best-solution solver)))
+
+(defn best-score [solver]
+  (:score (best-solution solver) 161))
 
 (defn random-tweets [dict]
   "Returns an infinite sequence of random combinations of twelve words
 chosen from the given dictionary."
-  (let [limit         (count dict)
-        rand-word     #(dict (rand-int limit))
+  (let [limit      (count dict)
+        rand-word  #(dict (rand-int limit))
         rand-tweet #(apply str (interpose " " (take 12 (repeatedly rand-word))))]
     (repeatedly rand-tweet)))
 
-(defn score-tweet [prob tweet]
-  (compare-hashes (sha1 tweet) (:hash prob)))
+(defn inc-num-tries [solver]
+  "Returns solver with :num-tries incremented."
+  (assoc solver
+    :num-tries (inc (:num-tries solver 0))))
 
-(defn scoring-fn [phrase]
-  (let [target-hash (sha1 phrase)]
-    (fn [tweet]
-      (compare-hashes (sha1 tweet) target-hash))))
+(defn add-tweet [solver tweet]
+  (if [(and tweet (string? tweet))]
+    (try
+     (let [solutions (:solutions solver ())
+           hash      (sha1 tweet)
+           score     (compare-hashes hash (:hash solver))]
+       (assoc solver
+         :solutions (if (< score (best-score solver))
+                      (conj solutions (make-solution tweet score))
+                      solutions)
+         :num-tries (inc (:num-tries solver))))
+     (catch Throwable t
+       (printf "Couldn't add tweet '%s' (%s) to solver %s%n"
+               tweet (class tweet) solver)
+       (.printStackTrace t)
+       solver))
+    solver))
 
 
-(def the-solver (agent nil))
+;;
+;; Agents
+;;
 
-(defn update [solver tweet]
-  (let [solutions (:solutions solver ())
-        score     (compare-hashes (sha1 tweet) (:hash solver))
-        solver    (inc (:num-tries solver))]
-    (if (< score (:score (first solutions)))
-      (assoc solver
-        :solutions (conj solutions (struct solution tweet score (java.util.Date.))))
-      solver)))
+(defn stopped? [solver]
+  (:stopped? solver))
 
-(defn make-solver [solver phrase dictionary]
-  (struct-map solver
-    :phrase phrase
-    :hash (sha1 phrase)
-    :dictionary dictionary
-    :solutions ()
-    :num-tries 0))
+(defn solve [solver tweets]
+  (if tweets
+    (do
+      (when-not (stopped? solver)
+        (send *agent* solve (rest tweets)))
+      (add-tweet solver (first tweets)))
+    solver))
 
-(defroutes solver-app
-  (GET "/"
-    (html
-     (doctype :html4)
-     [:html
-      [:head
-       [:title "Solver"]
-       (include-css "/styles.css")]
-      [:body
-       (link-to "/configure" "Configure")
-       [:h3 "Phrase:"] (:phrase @the-solver)
-       [:h3 "Dictionary:"] (:dictionary @the-solver)
-       [:h3 "Solutions:"]
-       [:table
-        [:tr 
-         [:td "Phrase"]
-         [:td "Score"]
-         [:td "Time Found"]]
-        (for [s (:solutions @the-solver)]
-          [:td 
-           [:td (:phrase s)]
-           [:td (:score s)]
-           [:td (:time s)]])]]]))
-  
-  (GET "/configure"
-       (html
-        (doctype :html4)
-        [:html
-         [:head
-          [:title "Solver"]
-          (include-css "/styles.css")]
-         [:body
-          (form-to [:post "/"]
-                   [:p (label :phrase "Phrase: ")
-                    (text-field :phrase (:phrase @the-solver))]
-                   [:p (label :dictionary "Dictionary: ")
-                    (text-area :dictionary (:dictionary @the-solver))]
-                   (submit-button "Submit"))]]))
 
-  (POST "/"
-    (let [phrase (params :phrase)
-          dict   (vec (.split (params :dictionary) "\\s+"))
-          score  (scoring-fn phrase)
-          solve  (fn solve [solver [tweet tweets]]
-                   (when @running (send *agent* solve tweets))
-                   (update solver tweet))]
-      (send the-solver make-solver phrase dict)
-      (send the-solver solve))))
 
-(defn -main []
-  (run-server {:port 8080} "/*" (servlet solver-app)))
+(defn stop-solving [solver]
+  (assoc solver :stopped? true))
 
-(defservice solver-app)
+(defn accumulate [manager solvers]
+  (println "In accumulate.  Best scores are " (map best-score solvers))
+  (reduce add-tweet manager (map best-tweet solvers)))
+

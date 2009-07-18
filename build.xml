@@ -3,7 +3,7 @@
          xmlns:mvn="urn:maven-artifact-ant">
 
   <property name="src.dir" location="src"/>
-  <property name="build.dir" location="src/WEB-INF/classes"/>
+  <property name="build.dir" location="war/WEB-INF/classes"/>
   <property name="clojure.dir" location="${user.home}/src/clojure"/>
   <property name="compojure.dir" location="${user.home}/src/compojure"/>
 
@@ -29,13 +29,21 @@
           classpathref="classpath">
       <sysproperty key="clojure.compile.path" value="${build.dir}"/>
       <arg value="com.mdelaurentis.engineyardcontest.solver"/>
+      <arg value="com.mdelaurentis.engineyardcontest.webapp"/>
     </java>
   </target>
 
   <target name="run" description="Run the site">
     <java classpathref="classpath"
-          classname="com.mdelaurentis.engineyardcontest.solver"
-          fork="true"/>
+          classname="com.mdelaurentis.engineyardcontest.webapp"
+          fork="true">      
+      <arg value="phrase.txt"/>
+      <arg value="dictionary.txt"/>
+      <arg value="10"/>
+      <arg value="8080"/>
+      <arg value="cluster.txt"/>
+    </java>
+    
   </target>
 
   <property name="classpath.property"
