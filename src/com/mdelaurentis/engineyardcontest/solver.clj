@@ -86,8 +86,7 @@ chosen from the given dictionary."
        (assoc solver
          :solutions (if (< score (best-score solver))
                       (conj solutions (make-solution tweet score))
-                      solutions)
-         :num-tries (inc (:num-tries solver))))
+                      solutions)))
      (catch Throwable t
        (printf "Couldn't add tweet '%s' (%s) to solver %s%n"
                tweet (class tweet) solver)
@@ -108,7 +107,7 @@ chosen from the given dictionary."
     (do
       (when-not (stopped? solver)
         (send *agent* solve (rest tweets)))
-      (add-tweet solver (first tweets)))
+      (inc-num-tries (add-tweet solver (first tweets))))
     solver))
 
 
@@ -117,6 +116,7 @@ chosen from the given dictionary."
   (assoc solver :stopped? true))
 
 (defn accumulate [manager solvers]
-  (println "In accumulate.  Best scores are " (map best-score solvers))
-  (reduce add-tweet manager (map best-tweet solvers)))
+  (assoc
+      (reduce add-tweet manager (map best-tweet solvers))
+    :num-tries (apply + (map :num-tries solvers))))
 
