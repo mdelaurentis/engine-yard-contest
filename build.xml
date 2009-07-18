@@ -43,7 +43,39 @@
       <arg value="8080"/>
       <arg value="cluster.txt"/>
     </java>
-    
+  </target>
+
+  <target name="run-test-cluster" description="Run the test cluster">
+    <java classpathref="classpath"
+          classname="com.mdelaurentis.engineyardcontest.webapp"
+          fork="true"
+          spawn="true">      
+      <arg value="phrase.txt"/>
+      <arg value="dictionary.txt"/>
+      <arg value="10"/>
+      <arg value="8080"/>
+      <arg value="test_cluster.txt"/>
+    </java>
+    <java classpathref="classpath"
+          classname="com.mdelaurentis.engineyardcontest.webapp"
+          fork="true"
+          spawn="true">      
+      <arg value="phrase.txt"/>
+      <arg value="dictionary.txt"/>
+      <arg value="10"/>
+      <arg value="8081"/>
+      <arg value="test_cluster.txt"/>
+    </java>
+    <java classpathref="classpath"
+          classname="com.mdelaurentis.engineyardcontest.webapp"
+          fork="true"
+          spawn="true">      
+      <arg value="phrase.txt"/>
+      <arg value="dictionary.txt"/>
+      <arg value="10"/>
+      <arg value="8082"/>
+      <arg value="test_cluster.txt"/>
+    </java>
   </target>
 
   <property name="classpath.property"
