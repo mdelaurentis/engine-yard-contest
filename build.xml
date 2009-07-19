@@ -41,7 +41,7 @@
       <arg value="dictionary.txt"/>
       <arg value="10"/>
       <arg value="8080"/>
-      <arg value="cluster.txt"/>
+      <arg value="trivial_cluster.txt"/>
     </java>
   </target>
 
