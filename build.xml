@@ -45,10 +45,10 @@
   <target name="run" description="Run the site">
     <java classpathref="classpath"
           classname="com.mdelaurentis.engineyardcontest.webapp"
-          fork="true">      
+          fork="true" spawn="true">      
       <arg value="phrase.txt"/>
       <arg value="dictionary.txt"/>
-      <arg value="20"/>
+      <arg value="100"/>
       <arg value="80"/>
       <arg value="cluster.txt"/>
     </java>
