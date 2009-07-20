@@ -1,0 +1,1 @@
+ec2din |cut -f4|tail -n +2

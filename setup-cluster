@@ -1,0 +1,5 @@
+clusterfile=$1
+key=$2
+for host in `cat $clusterfile`;
+do ssh -i $key root@$host "yum -y install java ant"
+done;
