@@ -10,10 +10,7 @@
   <path id="classpath">
     <pathelement location="${src.dir}"/>
     <pathelement location="${build.dir}"/>
-    <!--    <pathelement location="${clojure.dir}/clojure.jar"/> -->
-    <pathelement location="${compojure.dir}/compojure.jar"/>
-<!--    <fileset dir="deps" includes="**/*.jar"/> -->
-    <fileset dir="${compojure.dir}/deps" includes="**/*.jar"/> 
+    <fileset dir="war/WEB-INF/lib" includes="**/*.jar"/> 
   </path>
 
   <target name="init">
@@ -33,7 +30,7 @@
     </java>
   </target>
 
-  <target name="run" description="Run the site">
+  <target name="run-test" description="Run the site">
     <java classpathref="classpath"
           classname="com.mdelaurentis.engineyardcontest.webapp"
           fork="true">      
@@ -42,6 +39,18 @@
       <arg value="10"/>
       <arg value="8080"/>
       <arg value="trivial_cluster.txt"/>
+    </java>
+  </target>
+
+  <target name="run" description="Run the site">
+    <java classpathref="classpath"
+          classname="com.mdelaurentis.engineyardcontest.webapp"
+          fork="true">      
+      <arg value="phrase.txt"/>
+      <arg value="dictionary.txt"/>
+      <arg value="20"/>
+      <arg value="80"/>
+      <arg value="cluster.txt"/>
     </java>
   </target>
 
@@ -84,6 +93,12 @@
     <echo message="java -cp ${classpath.property}:/Users/mdelaurentis/src/swank-clojure clojure.main &quot;$@&quot;"
           file="repl"/>
     <chmod file="repl" perm="a+x"/>
+  </target>
+
+  <target name="package">
+    <tar destfile="engine-yard-contest.tar.gz"
+         basedir="."/>
+
   </target>
 
   <target name="clean" description="Remove generated files">
