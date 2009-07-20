@@ -7,5 +7,5 @@ tar zcvf $tarball *
 for host in `cat $clusterfile`; do
     echo Uploading to $host
     scp -i $key $tarball root@$host:
-    ssh -i $key $tarball root@$host "tar zxvf $tarball; nohup ant compile run &"
+    ssh -i $key root@$host "tar zxvf $tarball; service httpd stop; nohup ant compile run &"
 done;
