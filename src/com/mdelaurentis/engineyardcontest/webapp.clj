@@ -44,6 +44,37 @@
      (link-bar) body]
     ]))
 
+(defn solution-table [solutions]
+  [:table
+   [:tr 
+    [:th "Phrase"]
+    [:th "Score"]
+    [:th "Time Found"]]
+   (for [s solutions]
+     [:tr
+      [:td (:tweet s)]
+      [:td (:score s)]
+      [:td (Date. (:time s))]])])
+
+(defn cluster-table [hosts]
+  [:table 
+   [:tr (for [header ["Host" "Num Tries" "Best Score" "Last Update" "Error"]]
+          [:th header])]
+   (for [host hosts]
+     [:tr
+      [:td [:a {:href (str "http://" (:id host) "/cluster")} (:id host)]]
+      [:td (:num-tries host)]
+      [:td (best-score host)]
+      [:td (Date. (:last-update host))]
+      [:td (when (:error host)
+             (.getMessage (:error host)))]])
+   [:tr
+    [:td [:a {:href "/cluster"}] "total"]
+    [:td (apply + (map :num-tries hosts))]
+    [:td (first (sort (map best-score hosts)))]
+    [:td ""]
+    [:td ""]]])
+
 (defroutes solver-app
   (GET "/"
     (redirect-to "/solutions"))
@@ -59,33 +90,25 @@
 
   (GET "/cluster"
     (html-doc
-     "Cluster"
-     [:table 
-      [:tr (for [header ["Host" "Num Tries" "Best Score" "Last Update" "Error"]]
-             [:td header])]
-      (for [host (map deref @cluster)]
-        [:tr
-         [:td [:a {:href (str "http://" (:id host))} (:id host)]]
-         [:td (:num-tries host)]
-         [:td (best-score host)]
-         [:td (Date. (:last-update host))]
-         [:td (when (:error host)
-                (.getMessage (:error host)))]])]))
+     "Cluster" 
+     [:h3 "Cluster:"]
+     (cluster-table (map deref @cluster))
+     
+     [:h3 "Solutions:"]
+     (solution-table 
+      (:solutions
+       (accumulate
+        (make-solver "cluster" (:phrase @manager) (:dictionary @manager))
+        (map deref @cluster))))))
+
 
   (GET "/solutions"
-    (html-doc "Solutions"
+    (html-doc 
+     "Solutions"
+     [:h3 "Cluster:"]
+     (cluster-table (map deref @cluster))
      [:h3 "Num Tried:"] (:num-tries @manager)
-     [:h3 "Solutions:"]
-     [:table
-      [:tr 
-       [:td "Phrase"]
-       [:td "Score"]
-       [:td "Time Found"]]
-      (for [s (:solutions @manager)]
-        [:tr
-         [:td (:tweet s)]
-         [:td (:score s)]
-         [:td (Date. (:time s))]])])))
+     [:h3 "Solutions:"] (solution-table (:solutions @manager)))))
 
 (defn poll-remote-solver 
   "Attempts to update solver with the :solutions and :num-tries from
@@ -119,10 +142,9 @@
     (run-server {:port (Integer/valueOf port)} "/*" (servlet solver-app))
     (loop [n 0]
       (Thread/sleep local-update-time-millis)
-      (send manager accumulate (map deref (concat solvers @cluster)))
+      (send manager accumulate (map deref solvers))
       (when (zero? (mod n remote-update-frequency))
         (do
           (doseq [remote @cluster]
-            (send remote poll-remote-solver))
-          (send manager accumulate (map deref @cluster))))
+            (send remote poll-remote-solver))))
       (recur (mod (inc n) remote-update-frequency)))))
