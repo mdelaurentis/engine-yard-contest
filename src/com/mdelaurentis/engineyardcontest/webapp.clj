@@ -100,7 +100,7 @@
      (solution-table 
       (:solutions
        (accumulate
-        (make-solver "cluster" (:phrase @manager) (:dictionary @manager))
+        (solver "cluster" (:phrase @manager) (:dictionary @manager))
         (map deref @cluster))))))
 
 
@@ -116,17 +116,17 @@
   "Attempts to update solver with the :solutions and :num-tries from
   the remote solver.  If an error is caught, sets :error to the
   Throwable object.  Sets :last-update to the current time."
-  [solver]
+  [slvr]
   (assoc
       (try 
-       (let [status (read-string (slurp* (:url solver)))]
-         (dissoc (merge solver (select-keys status [:solutions :num-tries]))
+       (let [status (read-string (slurp* (:url slvr)))]
+         (dissoc (merge slvr (select-keys status [:solutions :num-tries]))
                  :error))
-       (catch Throwable t (assoc solver :error t)))
+       (catch Throwable t (assoc slvr :error t)))
     :last-update (System/currentTimeMillis)))
 
-(defn make-remote-solver [host phrase dict]
-  (assoc (make-solver host phrase dict)
+(defn remote-solver [host phrase dict]
+  (assoc (solver host phrase dict)
     :url (URL. (str "http://" host "/manager"))))
 
 (defn -main [#^String phrase-file 
@@ -137,18 +137,18 @@
   (let [phrase  (slurp phrase-file)
         dict    (vec (.split (slurp dict-file) "\\s+"))
         hosts   (vec (.split (slurp cluster-file) "\\s+"))
-        solvers (map agent (make-solvers (Integer/valueOf num-solvers) phrase dict))]
+        slvrs (map agent (solvers (Integer/valueOf num-solvers) phrase dict))]
     (dosync 
      (ref-set cluster 
               (for [host hosts]
-                (agent (make-remote-solver host phrase dict)))))
-    (send manager (fn [m] (make-solver "manager" phrase dict)))
-    (doseq [solver solvers]
-      (send solver solve (random-tweets dict)))
+                (agent (remote-solver host phrase dict)))))
+    (send manager (fn [m] (solver "manager" phrase dict)))
+    (doseq [slvr slvrs]
+      (send slvr solve (random-tweets dict)))
     (run-server {:port (Integer/valueOf port)} "/*" (servlet solver-app))
     (loop [n 0]
       (Thread/sleep local-update-time-millis)
-      (send manager accumulate (map deref solvers))
+      (send manager accumulate (map deref slvrs))
       (when (zero? (mod n remote-update-frequency))
         (do
           (doseq [remote @cluster]

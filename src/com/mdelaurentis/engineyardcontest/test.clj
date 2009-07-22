@@ -7,11 +7,15 @@
 ;;; Tests
 ;;; 
 
-(deftest test-compare-hashes
-  (is (= 0 (compare-hashes (sha1 "foo") (sha1 "foo"))))
-  (is (= 80 (compare-hashes (sha1 "What you write today will become legacy")                            (sha1 "RuBy one eight six rspec mongrel MRI jruby jruby memcached exception reflection utf8E"))))
-  (is (= 74 (compare-hashes (sha1 "I am not a big believer in fortune telling")
-                            (sha1 "Rubinius one eight six active active record memcached exception JRuby DHH TOKYO sdfe3")))))
+(deftest test-hamming-fn
+  (let [cmp (fn [a b]
+              ((hamming-fn (sha1 a)) (sha1 b)))]
+  
+    (is (= 0 (cmp "foo" "foo")))
+    (is (= 80 (cmp "What you write today will become legacy"    
+                   "RuBy one eight six rspec mongrel MRI jruby jruby memcached exception reflection utf8E")))
+    (is (= 74 (cmp "I am not a big believer in fortune telling"
+                   "Rubinius one eight six active active record memcached exception JRuby DHH TOKYO sdfe3")))))
 
 (deftest test-make-solvers 
   (let [dict  ["asdf" "bar" "foo" "clojure" "engine" "yard" "contest"]
@@ -52,9 +56,5 @@
         solver (make-solver "test" phrase dict)]
     (time (reduce add-tweet solver (take 10000 (random-tweets dict))))))
 
-;(run-tests)
-;(shutdown-agents)
-
-;(time (test-agents))
-
-(test-many-tweets)
+(run-tests)
+(shutdown-agents)
