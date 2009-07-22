@@ -1,0 +1,5 @@
+To run a single instance:
+
+  ant run-test
+
+Then go to http://localhost:8080 in a browser.
