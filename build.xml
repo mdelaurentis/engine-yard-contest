@@ -2,13 +2,15 @@
          default="compile"
          xmlns:mvn="urn:maven-artifact-ant">
 
-  <property name="src.dir" location="src"/>
+  <property name="clj.src.dir" location="src"/>
+  <property name="java.src.dir" location="src/java"/>
   <property name="build.dir" location="war/WEB-INF/classes"/>
   <property name="clojure.dir" location="${user.home}/src/clojure"/>
   <property name="compojure.dir" location="${user.home}/src/compojure"/>
 
   <path id="classpath">
-    <pathelement location="${src.dir}"/>
+    <pathelement location="${clj.src.dir}"/>
+    <pathelement location="${java.src.dir}"/>
     <pathelement location="${build.dir}"/>
     <fileset dir="war/WEB-INF/lib" includes="**/*.jar"/> 
   </path>
@@ -22,6 +24,8 @@
           depends="init"
           description="Compile sources.">
     <echo message="Classpath is ${classpath}"/>
+    <javac srcdir="${java.src.dir}"
+           destdir="${build.dir}"/>
     <java classname="clojure.lang.Compile"
           classpathref="classpath">
       <sysproperty key="clojure.compile.path" value="${build.dir}"/>
