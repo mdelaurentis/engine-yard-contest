@@ -7,13 +7,15 @@
   (:gen-class 
    :extends javax.servlet.http.HttpServlet))
 
+(set! *warn-on-reflection* true)
+
 ;; Number of milliseconds for to sleep between 
-;; rounds of polling local solvers
-(def local-update-time-millis 1000)
+;; rounds of polling local solvers (ten seconds)
+(def local-update-time-millis 10000)
 
 ;; Number of local updates to perform
-;; between remote updates
-(def remote-update-frequency 10)
+;; between remote updates (once a minute)
+(def remote-update-frequency 6)
 
 (def hostname (.getHostName (InetAddress/getLocalHost)))
 
@@ -127,7 +129,11 @@
   (assoc (make-solver host phrase dict)
     :url (URL. (str "http://" host "/manager"))))
 
-(defn -main [phrase-file dict-file num-solvers port cluster-file]
+(defn -main [#^String phrase-file 
+             #^String dict-file
+             #^String num-solvers
+             #^String port
+             #^String cluster-file]
   (let [phrase  (slurp phrase-file)
         dict    (vec (.split (slurp dict-file) "\\s+"))
         hosts   (vec (.split (slurp cluster-file) "\\s+"))
@@ -146,5 +152,5 @@
       (when (zero? (mod n remote-update-frequency))
         (do
           (doseq [remote @cluster]
-            (send remote poll-remote-solver))))
+            (send-off remote poll-remote-solver))))
       (recur (mod (inc n) remote-update-frequency)))))
