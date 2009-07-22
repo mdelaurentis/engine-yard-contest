@@ -1,3 +1,5 @@
+cluster.txt
+*.pem
 engine-yard-contest.tar.gz
 *.class
 classes
