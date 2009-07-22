@@ -4,7 +4,7 @@
 
   <property name="clj.src.dir" location="src"/>
   <property name="java.src.dir" location="src/java"/>
-  <property name="build.dir" location="war/WEB-INF/classes"/>
+  <property name="build.dir" location="classes"/>
   <property name="clojure.dir" location="${user.home}/src/clojure"/>
   <property name="compojure.dir" location="${user.home}/src/compojure"/>
 
@@ -12,7 +12,7 @@
     <pathelement location="${clj.src.dir}"/>
     <pathelement location="${java.src.dir}"/>
     <pathelement location="${build.dir}"/>
-    <fileset dir="war/WEB-INF/lib" includes="**/*.jar"/> 
+    <fileset dir="deps" includes="**/*.jar"/> 
   </path>
 
   <target name="init">
@@ -34,7 +34,7 @@
     </java>
   </target>
 
-  <target name="run-test" description="Run the site">
+  <target name="run-test" description="Run the site" depends="compile">
     <java classpathref="classpath"
           classname="com.mdelaurentis.engineyardcontest.webapp"
           fork="true">      
@@ -99,14 +99,9 @@
     <chmod file="repl" perm="a+x"/>
   </target>
 
-  <target name="package">
-    <tar destfile="engine-yard-contest.tar.gz"
-         basedir="."/>
-
-  </target>
-
   <target name="clean" description="Remove generated files">
     <delete dir="${build.dir}"/>
+    <delete file="repl"/>
   </target>
 
 </project>
