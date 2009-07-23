@@ -85,7 +85,6 @@ chosen from the given dictionary."
    :score score
    :time (System/currentTimeMillis)})
 
-
 ;;;
 ;;; Functions of solvers
 ;;;

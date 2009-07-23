@@ -27,12 +27,10 @@
 ;; the state of a remote solver
 (def cluster (ref []))
 
-
 (defn link-bar []
   (interpose " | "
              [ (link-to "/problem"   "problem") 
-               (link-to "/solutions" "solutions")
-               (link-to "/cluster" "cluster")]))
+               (link-to "/solutions" "solutions")]))
 
 (defn html-doc [title & body]
   (html
@@ -64,14 +62,14 @@
           [:th header])]
    (for [host hosts]
      [:tr
-      [:td [:a {:href (str "http://" (:id host) "/cluster")} (:id host)]]
+      [:td [:a {:href (str "http://" (:id host) "/solutions")} (:id host)]]
       [:td (:num-tries host)]
       [:td (best-score host)]
       [:td (Date. (:last-update host))]
       [:td (when (:error host)
              (.getMessage (:error host)))]])
    [:tr
-    [:td [:a {:href "/cluster"}] "total"]
+    [:td [:a {:href "/solutions"}] "total"]
     [:td (apply + (map :num-tries hosts))]
     [:td (first (sort (map best-score hosts)))]
     [:td ""]
@@ -90,27 +88,23 @@
   (GET "/manager"
     (str (select-keys @manager [:id :solutions :num-tries])))
 
-  (GET "/cluster"
+  (GET "/solutions"
     (html-doc
      "Cluster" 
-     [:h3 "Cluster:"]
-     (cluster-table (map deref @cluster))
      
-     [:h3 "Solutions:"]
+     [:h2 "Best Solution:"]
      (solution-table 
-      (:solutions
-       (accumulate
-        (solver "cluster" (:phrase @manager) (:dictionary @manager))
-        (map deref @cluster))))))
+      (list
+       (best-solution
+        (accumulate
+         (solver "cluster" (:phrase @manager) (:dictionary @manager))
+         (map deref @cluster)))))
 
-
-  (GET "/solutions"
-    (html-doc 
-     "Solutions"
-     [:h3 "Cluster:"]
+     [:h2 "Cluster:"]
      (cluster-table (map deref @cluster))
-     [:h3 "Num Tried:"] (:num-tries @manager)
-     [:h3 "Solutions:"] (solution-table (:solutions @manager)))))
+          
+     [:h2 "Solutions on " hostname ":"]
+     (solution-table (:solutions @manager)))))
 
 (defn poll-remote-solver 
   "Attempts to update solver with the :solutions and :num-tries from
